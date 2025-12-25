@@ -847,7 +847,11 @@
     textInput.style.display = 'block';
     textInput.value = '';
     textInput.style.color = currentColor;
-    textInput.style.fontSize = fontSize + 'px';
+
+    // 輸入時使用固定的舒適字體大小（便於閱讀和編輯）
+    // 最終文字圖層會使用計算出的 fontSize
+    const inputFontSize = Math.min(24, fontSize * 0.3); // 限制最大 24px，或使用計算字體的 30%
+    textInput.style.fontSize = Math.max(14, inputFontSize) + 'px';
 
     // 延遲 focus 確保輸入框已顯示
     setTimeout(() => {
