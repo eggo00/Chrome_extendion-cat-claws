@@ -33,14 +33,14 @@
   function initDragging(button) {
     let isDragging = false;
     let startX, startY, initialX, initialY;
-    let hasMoved = false;
+    button.hasMoved = false;
 
     button.addEventListener('mousedown', (e) => {
       // 只允許左鍵拖曳
       if (e.button !== 0) return;
 
       isDragging = true;
-      hasMoved = false;
+      button.hasMoved = false;
       button.classList.add('dragging');
 
       // 記錄初始位置
@@ -63,7 +63,7 @@
 
       // 如果移動超過 5px，視為拖曳
       if (Math.abs(deltaX) > 5 || Math.abs(deltaY) > 5) {
-        hasMoved = true;
+        button.hasMoved = true;
       }
 
       // 更新位置
@@ -89,9 +89,9 @@
         button.classList.remove('dragging');
 
         // 如果有移動，則取消點擊事件
-        if (hasMoved) {
+        if (button.hasMoved) {
           setTimeout(() => {
-            hasMoved = false;
+            button.hasMoved = false;
           }, 100);
         }
       }
