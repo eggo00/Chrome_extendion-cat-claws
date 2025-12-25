@@ -25,12 +25,6 @@
   "action": {
     "default_title": "Cat Claws - Snap it. Paw it."
   },
-  "icons": {
-    "16": "assets/icons/icon16.png",
-    "32": "assets/icons/icon32.png",
-    "48": "assets/icons/icon48.png",
-    "128": "assets/icons/icon128.png"
-  },
   "web_accessible_resources": [
     {
       "resources": ["assets/*", "editor.html", "cat-mood.js", "state-manager.js", "paw-themes.js"],
