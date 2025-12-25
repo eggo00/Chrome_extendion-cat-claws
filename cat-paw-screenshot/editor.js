@@ -17,6 +17,16 @@
   // 貓爪圖案（用於貼紙）
   let pawImage = null;
 
+  // 文字圖層系統
+  let textLayers = [];
+  let selectedTextId = null;
+  let textIdCounter = 0;
+  let resizingHandle = null; // 'nw', 'ne', 'sw', 'se' 或 null
+  let resizeStartSize = 0;
+  let textBoxStartX = 0;
+  let textBoxStartY = 0;
+  let justSelectedText = false; // 標記是否剛選中文字圖層
+
   // 初始化
   document.addEventListener('DOMContentLoaded', init);
 
@@ -389,6 +399,46 @@
     canvas.addEventListener('mousemove', handleMouseMove);
     canvas.addEventListener('mouseup', handleMouseUp);
     canvas.addEventListener('mouseleave', handleMouseUp);
+
+    // 鍵盤事件 - 刪除選中的文字圖層
+    document.addEventListener('keydown', (e) => {
+      if ((e.key === 'Delete' || e.key === 'Backspace') && selectedTextId !== null) {
+        // 確保不是在輸入框中
+        if (document.activeElement.tagName !== 'INPUT') {
+          e.preventDefault();
+          deleteSelectedTextLayer();
+        }
+      }
+    });
+
+    // 滑鼠移動時更新游標樣式（用於縮放控制點）
+    canvas.addEventListener('mousemove', (e) => {
+      if (isDrawing) return; // 繪製時不改變游標
+
+      const rect = canvas.getBoundingClientRect();
+      const scaleX = canvas.width / rect.width;
+      const scaleY = canvas.height / rect.height;
+      const mouseX = (e.clientX - rect.left) * scaleX;
+      const mouseY = (e.clientY - rect.top) * scaleY;
+
+      const handle = getResizeHandleAtPoint(mouseX, mouseY);
+
+      if (handle) {
+        // 根據控制點位置設定游標
+        if (handle === 'nw' || handle === 'se') {
+          canvas.style.cursor = 'nwse-resize';
+        } else if (handle === 'ne' || handle === 'sw') {
+          canvas.style.cursor = 'nesw-resize';
+        }
+      } else if (selectedTextId !== null && getTextLayerAtPoint(mouseX, mouseY)) {
+        canvas.style.cursor = 'move';
+      } else {
+        updateCursor(); // 恢復預設游標
+      }
+    });
+
+    // 定期重繪文字圖層
+    setInterval(renderTextLayers, 16); // 60 FPS
   }
 
   /**
@@ -397,6 +447,8 @@
   function updateCursor() {
     if (currentTool === 'stamp') {
       canvas.style.cursor = 'pointer';
+    } else if (currentTool === 'text') {
+      canvas.style.cursor = 'text';
     } else {
       canvas.style.cursor = 'crosshair';
     }
@@ -406,7 +458,6 @@
    * 滑鼠按下
    */
   function handleMouseDown(e) {
-    isDrawing = true;
     const rect = canvas.getBoundingClientRect();
 
     // 計算縮放比例
@@ -417,11 +468,54 @@
     startX = (e.clientX - rect.left) * scaleX;
     startY = (e.clientY - rect.top) * scaleY;
 
+    // 檢查是否點擊了縮放控制點（如果有選中的文字）
+    if (selectedTextId !== null) {
+      const handle = getResizeHandleAtPoint(startX, startY);
+      if (handle) {
+        resizingHandle = handle;
+        isDrawing = true;
+        const textLayer = textLayers.find(t => t.id === selectedTextId);
+        if (textLayer) {
+          resizeStartSize = textLayer.fontSize;
+        }
+        console.log('開始縮放:', handle);
+        return;
+      }
+    }
+
+    // 檢查是否點擊了文字圖層（優先處理）
+    const clickedText = getTextLayerAtPoint(startX, startY);
+    if (clickedText) {
+      selectedTextId = clickedText.id;
+      isDrawing = true;
+      resizingHandle = null;
+      justSelectedText = true; // 標記剛選中了文字圖層
+      console.log('選中文字圖層:', clickedText.text);
+      return;
+    }
+
+    // 如果點擊空白處，取消選擇
+    selectedTextId = null;
+    resizingHandle = null;
+    justSelectedText = false;
+
+    isDrawing = true;
+
     // 貓爪貼紙工具直接貼上
     if (currentTool === 'stamp') {
       stampPaw(startX, startY);
       saveHistory();
       isDrawing = false;
+      return;
+    }
+
+    // 文字工具：如果點擊到空白處才開始拖曳畫出文字框
+    // 如果點擊到已存在的文字圖層，上面的邏輯已經選中它了，這裡不執行
+    if (currentTool === 'text') {
+      console.log('📝 文字工具被點擊，開始拖曳畫文字框');
+      textBoxStartX = startX;
+      textBoxStartY = startY;
+      // isDrawing 已經是 true，會進入 handleMouseMove
       return;
     }
 
@@ -448,9 +542,48 @@
     const currentX = (e.clientX - rect.left) * scaleX;
     const currentY = (e.clientY - rect.top) * scaleY;
 
+    // 如果正在縮放文字圖層
+    if (resizingHandle !== null && selectedTextId !== null) {
+      const textLayer = textLayers.find(t => t.id === selectedTextId);
+      if (textLayer) {
+        // 計算距離變化來調整字體大小
+        const deltaX = currentX - startX;
+        const deltaY = currentY - startY;
+
+        // 使用對角線距離來計算縮放
+        let scaleFactor = 1;
+        if (resizingHandle === 'se' || resizingHandle === 'nw') {
+          scaleFactor = 1 + (deltaX + deltaY) / 200;
+        } else if (resizingHandle === 'ne' || resizingHandle === 'sw') {
+          scaleFactor = 1 + (deltaX - deltaY) / 200;
+        }
+
+        // 限制最小和最大字體大小
+        const newSize = Math.max(12, Math.min(200, resizeStartSize * scaleFactor));
+        textLayer.fontSize = newSize;
+      }
+      return;
+    }
+
+    // 如果選中了文字圖層，拖曳它
+    if (selectedTextId !== null && resizingHandle === null) {
+      const deltaX = currentX - startX;
+      const deltaY = currentY - startY;
+
+      const textLayer = textLayers.find(t => t.id === selectedTextId);
+      if (textLayer) {
+        textLayer.x += deltaX;
+        textLayer.y += deltaY;
+      }
+
+      startX = currentX;
+      startY = currentY;
+      return;
+    }
+
     if (currentTool === 'pen') {
       drawLine(currentX, currentY);
-    } else if (currentTool === 'rect' || currentTool === 'circle') {
+    } else if (currentTool === 'rect' || currentTool === 'circle' || currentTool === 'text') {
       // 預覽形狀（需要重繪）
       redrawWithPreview(currentX, currentY);
     }
@@ -478,11 +611,45 @@
     } else if (currentTool === 'circle') {
       drawCircle(startX, startY, endX, endY);
       saveHistory();
+    } else if (currentTool === 'text') {
+      // 如果剛才只是選中文字圖層，不建立新的文字框
+      if (justSelectedText) {
+        console.log('只是選中文字圖層，不建立新文字框');
+        justSelectedText = false;
+      } else {
+        // 文字工具：拖曳結束後顯示輸入框
+        const displayStartX = (textBoxStartX / scaleX);
+        const displayStartY = (textBoxStartY / scaleY);
+        const displayEndX = (endX / scaleX);
+        const displayEndY = (endY / scaleY);
+
+        // 計算文字框的寬高
+        const boxWidth = Math.abs(displayEndX - displayStartX);
+        const boxHeight = Math.abs(displayEndY - displayStartY);
+
+        // 只有當框的大小夠大時才建立文字輸入框（避免誤觸）
+        if (boxWidth > 10 && boxHeight > 10) {
+          // 計算左上角位置
+          const boxX = Math.min(displayStartX, displayEndX);
+          const boxY = Math.min(displayStartY, displayEndY);
+
+          const canvasStartX = Math.min(textBoxStartX, endX);
+          const canvasStartY = Math.min(textBoxStartY, endY);
+
+          // 根據框的大小計算字體大小（高度的 70%）
+          const fontSize = Math.max(12, Math.min(200, boxHeight * 0.7));
+
+          console.log('文字框大小:', boxWidth, 'x', boxHeight, '字體大小:', fontSize);
+
+          showTextInputWithSize(boxX, boxY, canvasStartX, canvasStartY, boxWidth, boxHeight, fontSize);
+        }
+      }
     } else if (currentTool === 'pen') {
       saveHistory();
     }
 
     isDrawing = false;
+    resizingHandle = null;
   }
 
   /**
@@ -527,7 +694,7 @@
 
   /**
    * 貼上貓爪貼紙
-   * Design DNA: 隨機角度 ±15°、隨機大小 0.8～1.1、三種顏色（粉、白、淺咖）
+   * 隨機角度、隨機大小（有大有小）、只顯示粉紅色貓爪
    */
   function stampPaw(x, y) {
     if (!pawImage || !pawImage.complete) {
@@ -535,18 +702,14 @@
       return;
     }
 
-    const baseSize = 50; // 基礎大小
+    const baseSize = 60; // 基礎大小
 
-    // 隨機大小 0.8～1.1
-    const randomScale = 0.8 + Math.random() * 0.3;
+    // 隨機大小 0.5～1.5（更大的變化範圍，有大有小）
+    const randomScale = 0.5 + Math.random() * 1.0;
     const size = baseSize * randomScale;
 
-    // 隨機角度 ±15°
-    const randomAngle = (Math.random() * 30 - 15) * Math.PI / 180;
-
-    // 隨機顏色：粉 #F6B6C8、白 #FFFFFF、淺咖 #B88C7D
-    const colors = ['#F6B6C8', '#FFFFFF', '#B88C7D'];
-    const randomColor = colors[Math.floor(Math.random() * colors.length)];
+    // 隨機角度 ±30°（增加旋轉變化）
+    const randomAngle = (Math.random() * 60 - 30) * Math.PI / 180;
 
     // 保存當前狀態
     ctx.save();
@@ -557,25 +720,335 @@
     // 旋轉
     ctx.rotate(randomAngle);
 
-    // 設定顏色濾鏡（使用 globalCompositeOperation）
-    ctx.globalAlpha = 0.9;
+    // 設定透明度
+    ctx.globalAlpha = 0.85;
 
-    // 繪製貓爪
+    // 直接繪製貓爪圖案（移除方框）
     ctx.drawImage(pawImage, -size / 2, -size / 2, size, size);
-
-    // 如果不是白色，添加顏色覆蓋層
-    if (randomColor !== '#FFFFFF') {
-      ctx.globalCompositeOperation = 'source-atop';
-      ctx.fillStyle = randomColor;
-      ctx.fillRect(-size / 2, -size / 2, size, size);
-    }
 
     // 恢復狀態
     ctx.restore();
   }
 
   /**
-   * 重繪並顯示預覽（用於方框和圓形）
+   * 讓文字輸入框可拖曳
+   */
+  function makeTextInputDraggable(textInput, canvasRect, containerRect) {
+    let isDragging = false;
+    let startX, startY, initialLeft, initialTop;
+
+    const handleMouseDown = (e) => {
+      // 只有在輸入框邊框區域才能拖曳（不影響文字編輯）
+      if (e.target !== textInput) return;
+
+      const rect = textInput.getBoundingClientRect();
+      const clickX = e.clientX - rect.left;
+      const clickY = e.clientY - rect.top;
+
+      // 只有點擊邊緣才拖曳（上下左右 8px 範圍）
+      const isEdge = clickX < 8 || clickX > rect.width - 8 ||
+                     clickY < 8 || clickY > rect.height - 8;
+
+      if (!isEdge && document.activeElement === textInput) return;
+
+      isDragging = true;
+      textInput.classList.add('dragging');
+
+      startX = e.clientX;
+      startY = e.clientY;
+      initialLeft = parseFloat(textInput.style.left);
+      initialTop = parseFloat(textInput.style.top);
+
+      e.preventDefault();
+    };
+
+    const handleMouseMove = (e) => {
+      if (!isDragging) return;
+
+      const deltaX = e.clientX - startX;
+      const deltaY = e.clientY - startY;
+
+      const newLeft = initialLeft + deltaX;
+      const newTop = initialTop + deltaY;
+
+      textInput.style.left = newLeft + 'px';
+      textInput.style.top = newTop + 'px';
+
+      // 更新畫布座標
+      const scaleX = canvas.width / canvasRect.width;
+      const scaleY = canvas.height / canvasRect.height;
+
+      const displayX = newLeft - (canvasRect.left - containerRect.left);
+      const displayY = newTop - (canvasRect.top - containerRect.top);
+
+      textInput.dataset.canvasX = displayX * scaleX;
+      textInput.dataset.canvasY = displayY * scaleY;
+    };
+
+    const handleMouseUp = () => {
+      if (isDragging) {
+        isDragging = false;
+        textInput.classList.remove('dragging');
+      }
+    };
+
+    textInput.addEventListener('mousedown', handleMouseDown);
+    document.addEventListener('mousemove', handleMouseMove);
+    document.addEventListener('mouseup', handleMouseUp);
+
+    // 清理事件監聽器（儲存為屬性供後續使用）
+    textInput.cleanupDrag = () => {
+      textInput.removeEventListener('mousedown', handleMouseDown);
+      document.removeEventListener('mousemove', handleMouseMove);
+      document.removeEventListener('mouseup', handleMouseUp);
+    };
+  }
+
+  /**
+   * 顯示文字輸入框（帶指定大小）
+   */
+  function showTextInputWithSize(displayX, displayY, canvasX, canvasY, width, height, fontSize) {
+    const textInput = document.getElementById('text-input');
+    if (!textInput) {
+      console.error('找不到文字輸入框元素');
+      return;
+    }
+
+    // 取得畫布位置
+    const canvasRect = canvas.getBoundingClientRect();
+    const containerRect = canvas.parentElement.getBoundingClientRect();
+
+    // 計算相對於 canvas-container 的位置
+    const inputX = canvasRect.left - containerRect.left + displayX;
+    const inputY = canvasRect.top - containerRect.top + displayY;
+
+    // 設定輸入框位置和大小
+    textInput.style.left = inputX + 'px';
+    textInput.style.top = inputY + 'px';
+    textInput.style.width = width + 'px';
+    textInput.style.height = height + 'px';
+    textInput.style.display = 'block';
+    textInput.value = '';
+    textInput.style.color = currentColor;
+    textInput.style.fontSize = fontSize + 'px';
+
+    // 延遲 focus 確保輸入框已顯示
+    setTimeout(() => {
+      textInput.focus();
+    }, 10);
+
+    // 儲存畫布座標和字體大小供後續使用
+    textInput.dataset.canvasX = canvasX;
+    textInput.dataset.canvasY = canvasY;
+    textInput.dataset.fontSize = fontSize;
+
+    console.log('文字輸入框已顯示於:', inputX, inputY, '大小:', width, 'x', height, '字體:', fontSize);
+
+    // 按下 Enter 時創建文字圖層
+    const handleEnter = (e) => {
+      if (e.key === 'Enter') {
+        const text = textInput.value.trim();
+        if (text) {
+          addTextLayer(
+            text,
+            parseFloat(textInput.dataset.canvasX),
+            parseFloat(textInput.dataset.canvasY),
+            currentColor,
+            parseFloat(textInput.dataset.fontSize)
+          );
+        }
+        // 重置輸入框樣式
+        textInput.style.width = '';
+        textInput.style.height = '';
+        textInput.style.display = 'none';
+        textInput.removeEventListener('keydown', handleEnter);
+        textInput.removeEventListener('blur', handleBlur);
+      }
+    };
+
+    // 失去焦點時也創建文字圖層
+    const handleBlur = () => {
+      setTimeout(() => {
+        const text = textInput.value.trim();
+        if (text) {
+          addTextLayer(
+            text,
+            parseFloat(textInput.dataset.canvasX),
+            parseFloat(textInput.dataset.canvasY),
+            currentColor,
+            parseFloat(textInput.dataset.fontSize)
+          );
+        }
+        // 重置輸入框樣式
+        textInput.style.width = '';
+        textInput.style.height = '';
+        textInput.style.display = 'none';
+        textInput.removeEventListener('keydown', handleEnter);
+        textInput.removeEventListener('blur', handleBlur);
+      }, 100);
+    };
+
+    textInput.addEventListener('keydown', handleEnter);
+    textInput.addEventListener('blur', handleBlur);
+  }
+
+  /**
+   * 新增文字圖層
+   */
+  function addTextLayer(text, x, y, color, fontSize) {
+    const textLayer = {
+      id: textIdCounter++,
+      text: text,
+      x: x,
+      y: y,
+      color: color,
+      fontSize: fontSize
+    };
+
+    textLayers.push(textLayer);
+    console.log('✅ 新增文字圖層:', textLayer);
+  }
+
+  /**
+   * 刪除選中的文字圖層
+   */
+  function deleteSelectedTextLayer() {
+    if (selectedTextId === null) return;
+
+    const index = textLayers.findIndex(t => t.id === selectedTextId);
+    if (index !== -1) {
+      const deletedLayer = textLayers.splice(index, 1)[0];
+      console.log('🗑️ 刪除文字圖層:', deletedLayer.text);
+      selectedTextId = null;
+    }
+  }
+
+  /**
+   * 檢查點擊位置是否在文字圖層上
+   */
+  function getTextLayerAtPoint(x, y) {
+    // 從後往前檢查（後加入的圖層在上層）
+    for (let i = textLayers.length - 1; i >= 0; i--) {
+      const layer = textLayers[i];
+
+      // 創建臨時 context 測量文字
+      ctx.save();
+      ctx.font = `${layer.fontSize}px Nunito, Poppins, sans-serif`;
+      const metrics = ctx.measureText(layer.text);
+      const textWidth = metrics.width;
+      const textHeight = layer.fontSize * 1.2; // 估算高度
+      ctx.restore();
+
+      // 檢查點是否在文字範圍內
+      if (x >= layer.x && x <= layer.x + textWidth &&
+          y >= layer.y && y <= layer.y + textHeight) {
+        return layer;
+      }
+    }
+
+    return null;
+  }
+
+  /**
+   * 檢查點擊位置是否在縮放控制點上
+   */
+  function getResizeHandleAtPoint(x, y) {
+    if (selectedTextId === null) return null;
+
+    const textLayer = textLayers.find(t => t.id === selectedTextId);
+    if (!textLayer) return null;
+
+    // 測量文字尺寸
+    ctx.save();
+    ctx.font = `${textLayer.fontSize}px Nunito, Poppins, sans-serif`;
+    const metrics = ctx.measureText(textLayer.text);
+    const textWidth = metrics.width;
+    const textHeight = textLayer.fontSize * 1.2;
+    ctx.restore();
+
+    const handleSize = 10; // 控制點大小
+    const padding = 5;
+
+    // 四個角的控制點位置
+    const handles = {
+      nw: { x: textLayer.x - padding, y: textLayer.y - padding },
+      ne: { x: textLayer.x + textWidth + padding, y: textLayer.y - padding },
+      sw: { x: textLayer.x - padding, y: textLayer.y + textHeight + padding },
+      se: { x: textLayer.x + textWidth + padding, y: textLayer.y + textHeight + padding }
+    };
+
+    // 檢查是否點擊了某個控制點
+    for (const [name, pos] of Object.entries(handles)) {
+      if (x >= pos.x - handleSize / 2 && x <= pos.x + handleSize / 2 &&
+          y >= pos.y - handleSize / 2 && y <= pos.y + handleSize / 2) {
+        return name;
+      }
+    }
+
+    return null;
+  }
+
+  /**
+   * 渲染所有文字圖層
+   */
+  function renderTextLayers() {
+    if (!canvas || !ctx) return;
+
+    // 恢復到當前歷史狀態（清除之前的文字圖層渲染）
+    if (historyStep >= 0) {
+      const imageData = history[historyStep];
+      ctx.putImageData(imageData, 0, 0);
+    }
+
+    // 繪製所有文字圖層
+    textLayers.forEach(layer => {
+      ctx.save();
+      ctx.fillStyle = layer.color;
+      ctx.font = `${layer.fontSize}px Nunito, Poppins, sans-serif`;
+      ctx.textBaseline = 'top';
+      ctx.fillText(layer.text, layer.x, layer.y);
+
+      // 如果是選中的圖層，顯示選擇框和縮放控制點
+      if (layer.id === selectedTextId) {
+        const metrics = ctx.measureText(layer.text);
+        const textWidth = metrics.width;
+        const textHeight = layer.fontSize * 1.2;
+
+        const padding = 5;
+
+        // 繪製虛線選擇框
+        ctx.strokeStyle = '#FF69B4';
+        ctx.lineWidth = 2;
+        ctx.setLineDash([5, 5]);
+        ctx.strokeRect(layer.x - padding, layer.y - padding, textWidth + padding * 2, textHeight + padding * 2);
+        ctx.setLineDash([]);
+
+        // 繪製四個角的縮放控制點
+        const handleSize = 10;
+        const handles = [
+          { x: layer.x - padding, y: layer.y - padding }, // 左上
+          { x: layer.x + textWidth + padding, y: layer.y - padding }, // 右上
+          { x: layer.x - padding, y: layer.y + textHeight + padding }, // 左下
+          { x: layer.x + textWidth + padding, y: layer.y + textHeight + padding } // 右下
+        ];
+
+        handles.forEach(handle => {
+          ctx.fillStyle = '#FF69B4';
+          ctx.strokeStyle = 'white';
+          ctx.lineWidth = 2;
+          ctx.beginPath();
+          ctx.arc(handle.x, handle.y, handleSize / 2, 0, 2 * Math.PI);
+          ctx.fill();
+          ctx.stroke();
+        });
+      }
+
+      ctx.restore();
+    });
+  }
+
+  /**
+   * 重繪並顯示預覽（用於方框、圓形和文字框）
    */
   function redrawWithPreview(currentX, currentY) {
     // 恢復到上一個歷史狀態
@@ -592,6 +1065,22 @@
       drawRect(startX, startY, currentX, currentY);
     } else if (currentTool === 'circle') {
       drawCircle(startX, startY, currentX, currentY);
+    } else if (currentTool === 'text') {
+      // 預覽文字框（虛線框）
+      const width = currentX - textBoxStartX;
+      const height = currentY - textBoxStartY;
+
+      ctx.strokeStyle = currentColor;
+      ctx.lineWidth = 2;
+      ctx.setLineDash([5, 5]);
+      ctx.strokeRect(textBoxStartX, textBoxStartY, width, height);
+      ctx.setLineDash([]);
+
+      // 顯示提示文字
+      ctx.fillStyle = currentColor;
+      ctx.globalAlpha = 0.3;
+      ctx.font = '14px Arial';
+      ctx.fillText('拖曳調整文字框大小', textBoxStartX + 10, textBoxStartY + 20);
     }
 
     ctx.restore();
@@ -636,12 +1125,34 @@
   }
 
   /**
-   * 下載圖片
+   * 下載圖片（合併所有文字圖層）
    */
   function download() {
     try {
-      // 將 canvas 轉換為 blob
-      canvas.toBlob((blob) => {
+      // 創建臨時 canvas 用於合併圖層
+      const tempCanvas = document.createElement('canvas');
+      tempCanvas.width = canvas.width;
+      tempCanvas.height = canvas.height;
+      const tempCtx = tempCanvas.getContext('2d');
+
+      // 1. 繪製底圖（當前畫布狀態）
+      if (historyStep >= 0) {
+        const imageData = history[historyStep];
+        tempCtx.putImageData(imageData, 0, 0);
+      }
+
+      // 2. 繪製所有文字圖層
+      textLayers.forEach(layer => {
+        tempCtx.save();
+        tempCtx.fillStyle = layer.color;
+        tempCtx.font = `${layer.fontSize}px Nunito, Poppins, sans-serif`;
+        tempCtx.textBaseline = 'top';
+        tempCtx.fillText(layer.text, layer.x, layer.y);
+        tempCtx.restore();
+      });
+
+      // 3. 將合併後的 canvas 轉換為 blob 並下載
+      tempCanvas.toBlob((blob) => {
         const url = URL.createObjectURL(blob);
         const a = document.createElement('a');
 
@@ -662,7 +1173,7 @@
           setCatMoodTemporary('download', 2500);
         }
 
-        console.log('下載成功！');
+        console.log('下載成功！已合併', textLayers.length, '個文字圖層');
       }, 'image/png');
 
     } catch (error) {
