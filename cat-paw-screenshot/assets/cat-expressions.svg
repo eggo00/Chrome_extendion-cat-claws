@@ -1,0 +1,125 @@
+<!-- Q 版小貓 - 支持多種表情的 SVG -->
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200" width="200" height="200" id="cat-svg">
+  <defs>
+    <!-- 微笑表情（預設）-->
+    <g id="expression-idle">
+      <ellipse cx="80" cy="90" rx="8" ry="12" fill="#2C1810"/>
+      <ellipse cx="82" cy="88" rx="3" ry="4" fill="white"/>
+      <ellipse cx="120" cy="90" rx="8" ry="12" fill="#2C1810"/>
+      <ellipse cx="122" cy="88" rx="3" ry="4" fill="white"/>
+      <path d="M 100 107 Q 85 115 80 110" stroke="#2C1810" stroke-width="2" fill="none" stroke-linecap="round"/>
+      <path d="M 100 107 Q 115 115 120 110" stroke="#2C1810" stroke-width="2" fill="none" stroke-linecap="round"/>
+    </g>
+
+    <!-- 好奇表情（hover）-->
+    <g id="expression-hover">
+      <circle cx="80" cy="88" r="10" fill="#2C1810"/>
+      <circle cx="82" cy="86" r="4" fill="white"/>
+      <circle cx="120" cy="88" r="10" fill="#2C1810"/>
+      <circle cx="122" cy="86" r="4" fill="white"/>
+      <ellipse cx="100" cy="108" rx="6" ry="8" fill="#2C1810"/>
+    </g>
+
+    <!-- 驚喜表情（capture）-->
+    <g id="expression-capture">
+      <circle cx="80" cy="88" r="11" fill="#2C1810"/>
+      <circle cx="78" cy="85" r="5" fill="white"/>
+      <circle cx="120" cy="88" r="11" fill="#2C1810"/>
+      <circle cx="118" cy="85" r="5" fill="white"/>
+      <circle cx="100" cy="110" r="8" fill="#2C1810"/>
+      <!-- 星星 -->
+      <path d="M 60 75 L 62 80 L 67 80 L 63 83 L 65 88 L 60 85 L 55 88 L 57 83 L 53 80 L 58 80 Z" fill="#FFD700"/>
+      <path d="M 140 75 L 142 80 L 147 80 L 143 83 L 145 88 L 140 85 L 135 88 L 137 83 L 133 80 L 138 80 Z" fill="#FFD700"/>
+    </g>
+
+    <!-- 認真表情（draw）-->
+    <g id="expression-draw">
+      <path d="M 72 88 Q 80 85 88 88" stroke="#2C1810" stroke-width="3" fill="none" stroke-linecap="round"/>
+      <ellipse cx="78" cy="90" rx="3" ry="2" fill="#2C1810"/>
+      <path d="M 112 88 Q 120 85 128 88" stroke="#2C1810" stroke-width="3" fill="none" stroke-linecap="round"/>
+      <ellipse cx="122" cy="90" rx="3" ry="2" fill="#2C1810"/>
+      <line x1="90" y1="108" x2="110" y2="108" stroke="#2C1810" stroke-width="2" stroke-linecap="round"/>
+    </g>
+
+    <!-- 開心表情（sticker）-->
+    <g id="expression-sticker">
+      <path d="M 72 88 Q 80 82 88 88" stroke="#2C1810" stroke-width="3" fill="none" stroke-linecap="round"/>
+      <line x1="78" y1="88" x2="78" y2="92" stroke="#2C1810" stroke-width="2" stroke-linecap="round"/>
+      <path d="M 112 88 Q 120 82 128 88" stroke="#2C1810" stroke-width="3" fill="none" stroke-linecap="round"/>
+      <line x1="122" y1="88" x2="122" y2="92" stroke="#2C1810" stroke-width="2" stroke-linecap="round"/>
+      <path d="M 85 108 Q 100 118 115 108" stroke="#2C1810" stroke-width="2.5" fill="none" stroke-linecap="round"/>
+    </g>
+
+    <!-- 小失落表情（undo）-->
+    <g id="expression-undo">
+      <ellipse cx="80" cy="92" rx="7" ry="10" fill="#2C1810"/>
+      <ellipse cx="82" cy="90" rx="2" ry="3" fill="white"/>
+      <ellipse cx="120" cy="92" rx="7" ry="10" fill="#2C1810"/>
+      <ellipse cx="122" cy="90" rx="2" ry="3" fill="white"/>
+      <path d="M 85 112 Q 100 108 115 112" stroke="#2C1810" stroke-width="2" fill="none" stroke-linecap="round"/>
+    </g>
+
+    <!-- 得意表情（download）-->
+    <g id="expression-download">
+      <path d="M 72 88 Q 80 82 88 88" stroke="#2C1810" stroke-width="3" fill="none" stroke-linecap="round"/>
+      <circle cx="78" cy="90" r="2" fill="#2C1810"/>
+      <path d="M 112 88 Q 120 82 128 88" stroke="#2C1810" stroke-width="3" fill="none" stroke-linecap="round"/>
+      <circle cx="122" cy="90" r="2" fill="#2C1810"/>
+      <path d="M 88 108 Q 100 115 112 108" stroke="#2C1810" stroke-width="2.5" fill="none" stroke-linecap="round"/>
+      <path d="M 90 110 L 85 115" stroke="#2C1810" stroke-width="1.5" stroke-linecap="round"/>
+      <path d="M 110 110 L 115 115" stroke="#2C1810" stroke-width="1.5" stroke-linecap="round"/>
+    </g>
+
+    <!-- 睡覺表情（night）-->
+    <g id="expression-night">
+      <line x1="72" y1="92" x2="88" y2="92" stroke="#2C1810" stroke-width="3" stroke-linecap="round"/>
+      <line x1="112" y1="92" x2="128" y2="92" stroke="#2C1810" stroke-width="3" stroke-linecap="round"/>
+      <path d="M 90 110 Q 100 108 110 110" stroke="#2C1810" stroke-width="2" fill="none" stroke-linecap="round"/>
+      <!-- ZZZ -->
+      <text x="130" y="70" font-size="16" fill="#2C1810" opacity="0.6">z</text>
+      <text x="140" y="60" font-size="14" fill="#2C1810" opacity="0.4">z</text>
+      <text x="148" y="52" font-size="12" fill="#2C1810" opacity="0.2">z</text>
+    </g>
+  </defs>
+
+  <!-- 左耳 -->
+  <polygon points="50,60 60,20 85,55" fill="#F5DEB3" stroke="#D2B48C" stroke-width="2"/>
+  <polygon points="60,40 65,30 75,50" fill="#FFE4E1"/>
+
+  <!-- 右耳 -->
+  <polygon points="150,60 140,20 115,55" fill="#F5DEB3" stroke="#D2B48C" stroke-width="2"/>
+  <polygon points="140,40 135,30 125,50" fill="#FFE4E1"/>
+
+  <!-- 臉 -->
+  <circle cx="100" cy="100" r="50" fill="#F5DEB3" stroke="#D2B48C" stroke-width="2"/>
+
+  <!-- 表情容器 - 預設顯示 idle -->
+  <use href="#expression-idle" id="active-expression"/>
+
+  <!-- 鼻子 -->
+  <polygon points="100,100 95,105 100,107 105,105" fill="#FF69B4"/>
+
+  <!-- 鬍鬚左 -->
+  <line x1="50" y1="95" x2="20" y2="90" stroke="#2C1810" stroke-width="1.5"/>
+  <line x1="50" y1="100" x2="15" y2="100" stroke="#2C1810" stroke-width="1.5"/>
+  <line x1="50" y1="105" x2="20" y2="110" stroke="#2C1810" stroke-width="1.5"/>
+
+  <!-- 鬍鬚右 -->
+  <line x1="150" y1="95" x2="180" y2="90" stroke="#2C1810" stroke-width="1.5"/>
+  <line x1="150" y1="100" x2="185" y2="100" stroke="#2C1810" stroke-width="1.5"/>
+  <line x1="150" y1="105" x2="180" y2="110" stroke="#2C1810" stroke-width="1.5"/>
+
+  <!-- 腮紅 -->
+  <circle cx="65" cy="105" r="8" fill="#FFB6C1" opacity="0.4"/>
+  <circle cx="135" cy="105" r="8" fill="#FFB6C1" opacity="0.4"/>
+
+  <!-- 身體 -->
+  <ellipse cx="100" cy="170" rx="40" ry="35" fill="#F5DEB3" stroke="#D2B48C" stroke-width="2"/>
+
+  <!-- 前腳 -->
+  <ellipse cx="80" cy="190" rx="12" ry="18" fill="#F5DEB3" stroke="#D2B48C" stroke-width="2"/>
+  <ellipse cx="120" cy="190" rx="12" ry="18" fill="#F5DEB3" stroke="#D2B48C" stroke-width="2"/>
+
+  <!-- 肚肚 -->
+  <ellipse cx="100" cy="170" rx="25" ry="20" fill="#FFE4E1" opacity="0.6"/>
+</svg>

@@ -1,0 +1,194 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>貓爪 Icon 生成器</title>
+  <style>
+    body {
+      font-family: 'Segoe UI', 'PingFang TC', 'Microsoft JhengHei', sans-serif;
+      background: linear-gradient(135deg, #FFF5EE 0%, #FFE4E1 100%);
+      padding: 40px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      min-height: 100vh;
+    }
+
+    .container {
+      background: white;
+      padding: 40px;
+      border-radius: 20px;
+      box-shadow: 0 10px 40px rgba(255, 182, 193, 0.3);
+      max-width: 800px;
+      width: 100%;
+    }
+
+    h1 {
+      color: #FF69B4;
+      text-align: center;
+      margin-bottom: 30px;
+    }
+
+    .instructions {
+      background: #FFF0F5;
+      padding: 20px;
+      border-radius: 10px;
+      margin-bottom: 30px;
+      border-left: 4px solid #FF69B4;
+    }
+
+    .canvas-group {
+      display: flex;
+      justify-content: space-around;
+      margin: 30px 0;
+      flex-wrap: wrap;
+      gap: 20px;
+    }
+
+    .canvas-item {
+      text-align: center;
+    }
+
+    .canvas-item canvas {
+      border: 2px solid #FFB6C1;
+      border-radius: 10px;
+      display: block;
+      margin: 10px auto;
+      background: white;
+    }
+
+    .canvas-item button {
+      background: linear-gradient(135deg, #FFB6C1 0%, #FF69B4 100%);
+      color: white;
+      border: none;
+      padding: 10px 20px;
+      border-radius: 10px;
+      cursor: pointer;
+      font-weight: 600;
+      transition: transform 0.2s;
+    }
+
+    .canvas-item button:hover {
+      transform: translateY(-2px);
+    }
+
+    .info {
+      background: #E8F5E9;
+      padding: 15px;
+      border-radius: 10px;
+      margin-top: 20px;
+      border-left: 4px solid #4CAF50;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>🐾 Cat Claws Icon 生成器</h1>
+
+    <div class="instructions">
+      <h3>使用說明：</h3>
+      <ol>
+        <li>這個工具會自動生成四種尺寸的 icon（16x16、32x32、48x48、128x128）</li>
+        <li>設計規格：圓形背景 + Paw Pink 底色 + 白色貓爪</li>
+        <li>點擊下方的「下載」按鈕儲存各個尺寸的 icon</li>
+        <li>將下載的圖片放到專案的 <code>assets/icons/</code> 資料夾</li>
+        <li>確保檔名為：icon16.png、icon32.png、icon48.png、icon128.png</li>
+      </ol>
+    </div>
+
+    <div class="canvas-group">
+      <div class="canvas-item">
+        <h3>16 x 16</h3>
+        <canvas id="canvas16" width="16" height="16"></canvas>
+        <button onclick="downloadIcon(16)">下載 16x16</button>
+      </div>
+
+      <div class="canvas-item">
+        <h3>32 x 32</h3>
+        <canvas id="canvas32" width="32" height="32"></canvas>
+        <button onclick="downloadIcon(32)">下載 32x32</button>
+      </div>
+
+      <div class="canvas-item">
+        <h3>48 x 48</h3>
+        <canvas id="canvas48" width="48" height="48"></canvas>
+        <button onclick="downloadIcon(48)">下載 48x48</button>
+      </div>
+
+      <div class="canvas-item">
+        <h3>128 x 128</h3>
+        <canvas id="canvas128" width="128" height="128"></canvas>
+        <button onclick="downloadIcon(128)">下載 128x128</button>
+      </div>
+    </div>
+
+    <div class="info">
+      <strong>✅ 完成後：</strong>
+      <p>將四個 PNG 檔案放到 <code>cat-paw-screenshot/assets/icons/</code> 資料夾，Extension 就可以正常顯示圖示了！</p>
+    </div>
+  </div>
+
+  <script>
+    // 繪製貓爪圖示 - Brand Design: 圓形 + Paw Pink 背景 + 白色貓爪
+    function drawPaw(canvas) {
+      const ctx = canvas.getContext('2d');
+      const size = canvas.width;
+      const scale = size / 100; // 縮放比例
+
+      // 清空畫布
+      ctx.clearRect(0, 0, size, size);
+
+      // 背景圓形 - Paw Pink #F6B6C8
+      ctx.fillStyle = '#F6B6C8';
+      ctx.beginPath();
+      ctx.arc(size / 2, size / 2, size / 2, 0, 2 * Math.PI);
+      ctx.fill();
+
+      // 繪製白色貓爪 - 簡化設計，小尺寸仍可辨識
+      ctx.fillStyle = 'white';
+
+      // 主掌墊（稍微大一點）
+      ctx.beginPath();
+      ctx.ellipse(50 * scale, 62 * scale, 24 * scale, 26 * scale, 0, 0, 2 * Math.PI);
+      ctx.fill();
+
+      // 左上趾墊（簡化，較粗）
+      ctx.beginPath();
+      ctx.ellipse(28 * scale, 36 * scale, 11 * scale, 13 * scale, 0, 0, 2 * Math.PI);
+      ctx.fill();
+
+      // 中上趾墊
+      ctx.beginPath();
+      ctx.ellipse(50 * scale, 28 * scale, 11 * scale, 13 * scale, 0, 0, 2 * Math.PI);
+      ctx.fill();
+
+      // 右上趾墊
+      ctx.beginPath();
+      ctx.ellipse(72 * scale, 36 * scale, 11 * scale, 13 * scale, 0, 0, 2 * Math.PI);
+      ctx.fill();
+    }
+
+    // 下載圖示
+    function downloadIcon(size) {
+      const canvas = document.getElementById(`canvas${size}`);
+      canvas.toBlob((blob) => {
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.download = `icon${size}.png`;
+        a.href = url;
+        a.click();
+        URL.revokeObjectURL(url);
+      }, 'image/png');
+    }
+
+    // 初始化 - 繪製所有尺寸的圖示
+    window.addEventListener('DOMContentLoaded', () => {
+      drawPaw(document.getElementById('canvas16'));
+      drawPaw(document.getElementById('canvas32'));
+      drawPaw(document.getElementById('canvas48'));
+      drawPaw(document.getElementById('canvas128'));
+    });
+  </script>
+</body>
+</html>

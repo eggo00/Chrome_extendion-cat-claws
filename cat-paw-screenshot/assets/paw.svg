@@ -1,0 +1,20 @@
+<!-- 可愛的貓爪 SVG -->
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" width="100" height="100">
+  <!-- 主掌墊 -->
+  <ellipse cx="50" cy="60" rx="22" ry="25" fill="#FFB6C1" stroke="#FF69B4" stroke-width="2"/>
+
+  <!-- 左上趾墊 -->
+  <ellipse cx="30" cy="35" rx="10" ry="12" fill="#FFB6C1" stroke="#FF69B4" stroke-width="2"/>
+
+  <!-- 中上趾墊 -->
+  <ellipse cx="50" cy="28" rx="10" ry="12" fill="#FFB6C1" stroke="#FF69B4" stroke-width="2"/>
+
+  <!-- 右上趾墊 -->
+  <ellipse cx="70" cy="35" rx="10" ry="12" fill="#FFB6C1" stroke="#FF69B4" stroke-width="2"/>
+
+  <!-- 右下趾墊 -->
+  <ellipse cx="75" cy="55" rx="9" ry="11" fill="#FFB6C1" stroke="#FF69B4" stroke-width="2"/>
+
+  <!-- 可愛的陰影效果 -->
+  <ellipse cx="50" cy="65" rx="18" ry="5" fill="#FF69B4" opacity="0.2"/>
+</svg>
