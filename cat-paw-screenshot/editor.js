@@ -408,8 +408,14 @@
   function handleMouseDown(e) {
     isDrawing = true;
     const rect = canvas.getBoundingClientRect();
-    startX = e.clientX - rect.left;
-    startY = e.clientY - rect.top;
+
+    // 計算縮放比例
+    const scaleX = canvas.width / rect.width;
+    const scaleY = canvas.height / rect.height;
+
+    // 修正座標偏移
+    startX = (e.clientX - rect.left) * scaleX;
+    startY = (e.clientY - rect.top) * scaleY;
 
     // 貓爪貼紙工具直接貼上
     if (currentTool === 'stamp') {
@@ -433,8 +439,14 @@
     if (!isDrawing) return;
 
     const rect = canvas.getBoundingClientRect();
-    const currentX = e.clientX - rect.left;
-    const currentY = e.clientY - rect.top;
+
+    // 計算縮放比例
+    const scaleX = canvas.width / rect.width;
+    const scaleY = canvas.height / rect.height;
+
+    // 修正座標偏移
+    const currentX = (e.clientX - rect.left) * scaleX;
+    const currentY = (e.clientY - rect.top) * scaleY;
 
     if (currentTool === 'pen') {
       drawLine(currentX, currentY);
@@ -451,8 +463,14 @@
     if (!isDrawing) return;
 
     const rect = canvas.getBoundingClientRect();
-    const endX = e.clientX - rect.left;
-    const endY = e.clientY - rect.top;
+
+    // 計算縮放比例
+    const scaleX = canvas.width / rect.width;
+    const scaleY = canvas.height / rect.height;
+
+    // 修正座標偏移
+    const endX = (e.clientX - rect.left) * scaleX;
+    const endY = (e.clientY - rect.top) * scaleY;
 
     if (currentTool === 'rect') {
       drawRect(startX, startY, endX, endY);

@@ -101,8 +101,12 @@
   // 處理截圖
   function handleScreenshot(e) {
     // 如果是拖曳後的點擊，不觸發截圖
-    if (e.target.closest('#cat-paw-button').hasMoved) return;
+    if (e.target.closest('#cat-paw-button').hasMoved) {
+      console.log('🚫 剛拖曳過，取消截圖');
+      return;
+    }
 
+    console.log('🐾 貓爪被點擊！準備截圖...');
     const button = document.getElementById('cat-paw-button');
 
     // 添加點擊動畫
@@ -114,13 +118,20 @@
     // 顯示「啾」提示動畫
     showMeowPopup(e.clientX, e.clientY);
 
+    console.log('📨 發送截圖請求到 background...');
     // 發送截圖請求到 background script
     chrome.runtime.sendMessage({ action: 'capture' }, (response) => {
+      if (chrome.runtime.lastError) {
+        console.error('❌ 訊息發送錯誤:', chrome.runtime.lastError);
+        alert('無法連接到擴充功能後台，請重新載入擴充功能！');
+        return;
+      }
+
       if (response && response.success) {
-        console.log('截圖成功！');
+        console.log('✅ 截圖成功！');
       } else {
-        console.error('截圖失敗:', response?.error);
-        alert('截圖失敗，請重試！');
+        console.error('❌ 截圖失敗:', response?.error);
+        alert('截圖失敗：' + (response?.error || '未知錯誤'));
       }
     });
   }
