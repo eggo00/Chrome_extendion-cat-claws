@@ -98,6 +98,19 @@
     });
   }
 
+  // 播放貓叫聲
+  function playMeowSound() {
+    try {
+      const audio = new Audio(chrome.runtime.getURL('assets/meow.mp3'));
+      audio.volume = 0.5; // 音量設定為 50%
+      audio.play().catch(err => {
+        console.log('🔇 無法播放音效（可能是找不到音效檔案）:', err);
+      });
+    } catch (err) {
+      console.log('🔇 音效播放錯誤:', err);
+    }
+  }
+
   // 處理截圖
   function handleScreenshot(e) {
     // 如果是拖曳後的點擊，不觸發截圖
@@ -108,6 +121,9 @@
 
     console.log('🐾 貓爪被點擊！準備截圖...');
     const button = document.getElementById('cat-paw-button');
+
+    // 播放貓叫聲 🎵
+    playMeowSound();
 
     // 添加點擊動畫
     button.classList.add('clicking');

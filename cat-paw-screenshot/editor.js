@@ -605,6 +605,9 @@
     const endX = (e.clientX - rect.left) * scaleX;
     const endY = (e.clientY - rect.top) * scaleY;
 
+    // 如果正在縮放文字圖層，不執行其他操作
+    const wasResizing = resizingHandle !== null;
+
     if (currentTool === 'rect') {
       drawRect(startX, startY, endX, endY);
       saveHistory();
@@ -612,11 +615,21 @@
       drawCircle(startX, startY, endX, endY);
       saveHistory();
     } else if (currentTool === 'text') {
+      // 如果剛才是在縮放文字圖層，不建立新的文字框
+      if (wasResizing) {
+        console.log('剛才在縮放文字圖層，不建立新文字框');
+      }
       // 如果剛才只是選中文字圖層，不建立新的文字框
-      if (justSelectedText) {
+      else if (justSelectedText) {
         console.log('只是選中文字圖層，不建立新文字框');
         justSelectedText = false;
-      } else {
+      }
+      // 如果是在拖曳移動文字圖層，也不建立新的文字框
+      else if (selectedTextId !== null && !wasResizing) {
+        console.log('剛才在移動文字圖層，不建立新文字框');
+      }
+      // 否則才建立新的文字框
+      else {
         // 文字工具：拖曳結束後顯示輸入框
         const displayStartX = (textBoxStartX / scaleX);
         const displayStartY = (textBoxStartY / scaleY);
@@ -636,10 +649,14 @@
           const canvasStartX = Math.min(textBoxStartX, endX);
           const canvasStartY = Math.min(textBoxStartY, endY);
 
-          // 根據框的大小計算字體大小（高度的 70%）
-          const fontSize = Math.max(12, Math.min(200, boxHeight * 0.7));
+          // 計算畫布上的實際高度
+          const canvasHeight = Math.abs(endY - textBoxStartY);
 
-          console.log('文字框大小:', boxWidth, 'x', boxHeight, '字體大小:', fontSize);
+          // 根據畫布上的框高度計算字體大小（高度的 70%）
+          // 使用畫布座標而非顯示座標，確保字體大小正確
+          const fontSize = Math.max(12, Math.min(200, canvasHeight * 0.7));
+
+          console.log('文字框大小:', boxWidth, 'x', boxHeight, '畫布高度:', canvasHeight, '字體大小:', fontSize);
 
           showTextInputWithSize(boxX, boxY, canvasStartX, canvasStartY, boxWidth, boxHeight, fontSize);
         }
