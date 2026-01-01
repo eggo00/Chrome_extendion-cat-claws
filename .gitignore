@@ -1,0 +1,18 @@
+# macOS 系統檔案
+.DS_Store
+**/.DS_Store
+
+# IDE 設定檔
+.vscode/
+.idea/
+
+# 暫存檔案
+*.log
+*.tmp
+
+# Node modules (如果將來需要)
+node_modules/
+
+# 環境變數檔案
+.env
+.env.local
