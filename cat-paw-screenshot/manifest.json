@@ -23,7 +23,13 @@
     }
   ],
   "action": {
-    "default_title": "Cat Claws - Snap it. Paw it."
+    "default_title": "Cat Claws - Snap it. Paw it.",
+    "default_icon": "assets/paw.svg"
+  },
+  "icons": {
+    "16": "assets/paw.svg",
+    "48": "assets/paw.svg",
+    "128": "assets/paw.svg"
   },
   "web_accessible_resources": [
     {

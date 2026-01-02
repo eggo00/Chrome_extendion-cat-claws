@@ -27,6 +27,12 @@
   let textBoxStartY = 0;
   let justSelectedText = false; // 標記是否剛選中文字圖層
 
+  // 裁剪相關變數
+  let cropMode = false;           // 是否處於裁剪模式
+  let cropRect = null;            // { x, y, width, height }
+  let initialCropComplete = false; // 初始裁剪是否完成
+  let originalCanvas = null;      // 用於取消操作
+
   // 初始化
   document.addEventListener('DOMContentLoaded', init);
 
@@ -298,6 +304,11 @@
 
         // 隱藏載入動畫
         loading.classList.add('hidden');
+
+        // 自動進入裁剪模式（首次載入）
+        if (!initialCropComplete) {
+          setTimeout(() => enterCropMode(true), 300);
+        }
       };
 
       img.onerror = () => {
@@ -329,6 +340,12 @@
     const toolBtns = document.querySelectorAll('.tool-btn');
     toolBtns.forEach(btn => {
       btn.addEventListener('click', () => {
+        // 裁剪工具特殊處理
+        if (btn.dataset.tool === 'crop') {
+          enterCropMode(false);
+          return;
+        }
+
         // 移除其他按鈕的 active 狀態
         toolBtns.forEach(b => b.classList.remove('active'));
         // 添加當前按鈕的 active 狀態
@@ -468,6 +485,13 @@
     startX = (e.clientX - rect.left) * scaleX;
     startY = (e.clientY - rect.top) * scaleY;
 
+    // 裁剪模式優先處理
+    if (cropMode) {
+      cropRect = { x: startX, y: startY, width: 0, height: 0 };
+      isDrawing = true;
+      return;
+    }
+
     // 檢查是否點擊了縮放控制點（如果有選中的文字）
     if (selectedTextId !== null) {
       const handle = getResizeHandleAtPoint(startX, startY);
@@ -542,6 +566,12 @@
     const currentX = (e.clientX - rect.left) * scaleX;
     const currentY = (e.clientY - rect.top) * scaleY;
 
+    // 裁剪模式優先處理
+    if (cropMode && cropRect) {
+      drawCropPreview(currentX, currentY);
+      return;
+    }
+
     // 如果正在縮放文字圖層
     if (resizingHandle !== null && selectedTextId !== null) {
       const textLayer = textLayers.find(t => t.id === selectedTextId);
@@ -604,6 +634,29 @@
     // 修正座標偏移
     const endX = (e.clientX - rect.left) * scaleX;
     const endY = (e.clientY - rect.top) * scaleY;
+
+    // 裁剪模式優先處理
+    if (cropMode && cropRect) {
+      cropRect.width = endX - cropRect.x;
+      cropRect.height = endY - cropRect.y;
+
+      // 只有當選擇框夠大時才顯示確認按鈕
+      if (Math.abs(cropRect.width) > 20 && Math.abs(cropRect.height) > 20) {
+        // 確保寬高為正值
+        if (cropRect.width < 0) {
+          cropRect.x += cropRect.width;
+          cropRect.width = Math.abs(cropRect.width);
+        }
+        if (cropRect.height < 0) {
+          cropRect.y += cropRect.height;
+          cropRect.height = Math.abs(cropRect.height);
+        }
+        showCropButtons();
+        removeCropOverlay();
+      }
+      isDrawing = false;
+      return;
+    }
 
     // 如果正在縮放文字圖層，不執行其他操作
     const wasResizing = resizingHandle !== null;
@@ -1200,6 +1253,244 @@
     } catch (error) {
       console.error('下載失敗:', error);
       alert('下載失敗，請重試！');
+    }
+  }
+
+  /**
+   * 進入裁剪模式
+   */
+  function enterCropMode(isInitial) {
+    cropMode = true;
+    cropRect = null;
+
+    // 保存原始 canvas 狀態（用於取消操作）
+    originalCanvas = ctx.getImageData(0, 0, canvas.width, canvas.height);
+
+    // 顯示裁剪提示
+    showCropOverlay();
+
+    // 更新游標
+    canvas.style.cursor = 'crosshair';
+
+    // 切換貓咪表情
+    if (typeof setCatMood === 'function') {
+      setCatMood('idle');
+    }
+
+    console.log(isInitial ? '🎯 自動進入裁剪模式' : '✂️ 手動進入裁剪模式');
+  }
+
+  /**
+   * 繪製裁剪預覽
+   */
+  function drawCropPreview(currentX, currentY) {
+    if (!cropRect) return;
+
+    // 計算當前裁剪區域
+    const width = currentX - cropRect.x;
+    const height = currentY - cropRect.y;
+
+    // 恢復原始圖片
+    if (originalCanvas) {
+      ctx.putImageData(originalCanvas, 0, 0);
+    }
+
+    // 繪製半透明遮罩（非裁剪區域）
+    ctx.save();
+    ctx.fillStyle = 'rgba(0, 0, 0, 0.5)';
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+    // 清除裁剪區域的遮罩
+    ctx.globalCompositeOperation = 'destination-out';
+    ctx.fillRect(cropRect.x, cropRect.y, width, height);
+    ctx.globalCompositeOperation = 'source-over';
+
+    // 繪製裁剪框（粉紅色虛線）
+    ctx.strokeStyle = '#FF69B4';
+    ctx.lineWidth = 2;
+    ctx.setLineDash([10, 5]);
+    ctx.strokeRect(cropRect.x, cropRect.y, width, height);
+    ctx.setLineDash([]);
+
+    // 顯示尺寸提示
+    const displayWidth = Math.abs(Math.round(width));
+    const displayHeight = Math.abs(Math.round(height));
+    const textX = cropRect.x + width / 2;
+    const textY = cropRect.y + height / 2;
+
+    ctx.fillStyle = '#FF69B4';
+    ctx.font = 'bold 20px Arial';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillText(`${displayWidth} × ${displayHeight}`, textX, textY);
+
+    ctx.restore();
+  }
+
+  /**
+   * 執行裁剪
+   */
+  function executeCrop() {
+    if (!cropRect || !originalCanvas) return;
+
+    console.log('執行裁剪:', cropRect);
+
+    // 提取裁剪區域
+    const cropData = ctx.getImageData(
+      cropRect.x,
+      cropRect.y,
+      cropRect.width,
+      cropRect.height
+    );
+
+    // 計算智能縮放
+    const originalArea = canvas.width * canvas.height;
+    const cropArea = cropRect.width * cropRect.height;
+    const areaRatio = cropArea / originalArea;
+
+    let scale = 1;
+    let finalWidth = cropRect.width;
+    let finalHeight = cropRect.height;
+
+    if (areaRatio < 0.5) {
+      // 小於 50% 面積：放大填滿 canvas
+      scale = Math.min(
+        canvas.width / cropRect.width,
+        canvas.height / cropRect.height
+      );
+      finalWidth = Math.round(cropRect.width * scale);
+      finalHeight = Math.round(cropRect.height * scale);
+      console.log('智能縮放：放大 ' + scale.toFixed(2) + 'x');
+    } else {
+      // 大於等於 50% 面積：保持原尺寸
+      console.log('智能縮放：保持原尺寸');
+    }
+
+    // 調整 canvas 尺寸
+    canvas.width = finalWidth;
+    canvas.height = finalHeight;
+
+    // 繪製裁剪並縮放的圖片
+    const tempCanvas = document.createElement('canvas');
+    tempCanvas.width = cropRect.width;
+    tempCanvas.height = cropRect.height;
+    const tempCtx = tempCanvas.getContext('2d');
+    tempCtx.putImageData(cropData, 0, 0);
+
+    ctx.drawImage(tempCanvas, 0, 0, cropRect.width, cropRect.height, 0, 0, finalWidth, finalHeight);
+
+    // 調整文字圖層
+    textLayers = textLayers
+      .filter(layer => {
+        // 過濾掉裁剪區域外的文字
+        return layer.x >= cropRect.x && layer.x <= cropRect.x + cropRect.width &&
+               layer.y >= cropRect.y && layer.y <= cropRect.y + cropRect.height;
+      })
+      .map(layer => {
+        // 調整座標和字體大小
+        return {
+          ...layer,
+          x: (layer.x - cropRect.x) * scale,
+          y: (layer.y - cropRect.y) * scale,
+          fontSize: layer.fontSize * scale
+        };
+      });
+
+    console.log('✅ 裁剪完成，保留', textLayers.length, '個文字圖層');
+
+    // 保存歷史
+    saveHistory();
+
+    // 退出裁剪模式
+    exitCropMode(true);
+  }
+
+  /**
+   * 取消裁剪
+   */
+  function cancelCrop() {
+    if (originalCanvas) {
+      // 恢復原始 canvas
+      ctx.putImageData(originalCanvas, 0, 0);
+    }
+
+    console.log('❌ 取消裁剪');
+
+    // 退出裁剪模式
+    exitCropMode(false);
+  }
+
+  /**
+   * 退出裁剪模式
+   */
+  function exitCropMode(completed) {
+    cropMode = false;
+    cropRect = null;
+    originalCanvas = null;
+
+    // 隱藏 UI
+    hideCropButtons();
+    removeCropOverlay();
+
+    // 恢復游標
+    updateCursor();
+
+    // 標記初始裁剪已完成
+    if (completed) {
+      initialCropComplete = true;
+    }
+
+    console.log('退出裁剪模式');
+  }
+
+  /**
+   * 顯示裁剪遮罩
+   */
+  function showCropOverlay() {
+    const overlay = document.getElementById('crop-overlay');
+    if (overlay) {
+      overlay.style.display = 'flex';
+    }
+  }
+
+  /**
+   * 移除裁剪遮罩
+   */
+  function removeCropOverlay() {
+    const overlay = document.getElementById('crop-overlay');
+    if (overlay) {
+      overlay.style.display = 'none';
+    }
+  }
+
+  /**
+   * 顯示裁剪確認按鈕
+   */
+  function showCropButtons() {
+    const buttons = document.getElementById('crop-buttons');
+    if (buttons) {
+      buttons.style.display = 'flex';
+
+      // 綁定確認按鈕
+      const confirmBtn = document.getElementById('crop-confirm-btn');
+      const cancelBtn = document.getElementById('crop-cancel-btn');
+
+      if (confirmBtn) {
+        confirmBtn.onclick = executeCrop;
+      }
+      if (cancelBtn) {
+        cancelBtn.onclick = cancelCrop;
+      }
+    }
+  }
+
+  /**
+   * 隱藏裁剪確認按鈕
+   */
+  function hideCropButtons() {
+    const buttons = document.getElementById('crop-buttons');
+    if (buttons) {
+      buttons.style.display = 'none';
     }
   }
 
